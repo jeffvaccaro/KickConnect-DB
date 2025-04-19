@@ -1,10 +1,10 @@
 -- EXAMPLE 
 -- cd  c:\Program Files\MySQL\MySQL Server 8.0\bin
--- mysqldump -u root -p --databases admin common > c:\\KCAppDB.sql
+-- mysqldump -u root -p --databases admin common --routines --events --triggers > c:\\KCAppDB.sql
 --
---  UPDATED ON 04/04/2025
+--  UPDATED ON 04/19/2025
 --
--- MySQL dump 10.13  Distrib 8.0.40, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.39, for Win64 (x86_64)
 --
 -- Host: localhost    Database: admin
 -- ------------------------------------------------------
@@ -564,6 +564,102 @@ INSERT INTO `userroles` VALUES (1,1),(2,2),(9,2),(3,3),(10,3),(4,4),(4,5),(5,5),
 UNLOCK TABLES;
 
 --
+-- Dumping events for database 'admin'
+--
+
+--
+-- Dumping routines for database 'admin'
+--
+/*!50003 DROP PROCEDURE IF EXISTS `GetNextEvent` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetNextEvent`(IN locationId INT)
+BEGIN
+    DECLARE interval_days INT DEFAULT 0;
+    DECLARE found_event BOOLEAN DEFAULT FALSE;
+
+    WHILE NOT found_event AND interval_days < 7 DO -- Limit the search to the next 7 days (adjust as needed)
+        SELECT
+            e.eventId,
+            e.eventName,
+            e.eventDescription,
+            d.dayValue,
+            DATE_FORMAT(s.startTime, '%h:%i %p') AS startTime,
+            DATE_FORMAT(s.endTime, '%h:%i %p') AS endTime
+        FROM
+            admin.schedulemain s
+        INNER JOIN
+            admin.event e
+            ON s.eventId = e.eventId
+            AND e.isActive = true
+        INNER JOIN
+            admin.schedulelocation sl
+            ON s.scheduleMainId = sl.scheduleMainId
+            AND sl.locationid = locationId -- Using the input parameter here
+        INNER JOIN
+            common.days d
+            ON d.dayNumber = s.day
+        WHERE
+            ((WEEK(s.selectedDate) = WEEK(DATE_ADD(CURDATE(), INTERVAL interval_days DAY)) AND YEAR(s.selectedDate) = YEAR(DATE_ADD(CURDATE(), INTERVAL interval_days DAY)) AND s.isRepeat = false)
+            OR  s.isRepeat = true)
+        AND d.dayValue = DAYNAME(DATE_ADD(CURDATE(), INTERVAL interval_days DAY))
+        AND (interval_days = 0 AND TIME(s.startTime) > TIME(CURTIME()) OR interval_days > 0) -- Only check time on the current day
+        ORDER BY TIME(s.startTime) ASC
+        LIMIT 1;
+
+        IF ROW_COUNT() > 0 THEN
+            SET found_event = TRUE;
+        ELSE
+            SET interval_days = interval_days + 1;
+        END IF;
+    END WHILE;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `ResetAllTables` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ResetAllTables`()
+BEGIN
+	SET FOREIGN_KEY_CHECKS = 0;
+
+	-- Truncate each table manually
+	TRUNCATE TABLE `account`;
+	TRUNCATE TABLE `event`;
+	TRUNCATE TABLE `location`;
+	TRUNCATE TABLE `profile`;
+	TRUNCATE TABLE `role`;
+	TRUNCATE TABLE `schedulelocation`;
+	TRUNCATE TABLE `schedulemain`;
+	TRUNCATE TABLE `user`;
+	TRUNCATE TABLE `userroles`;
+
+	SET FOREIGN_KEY_CHECKS = 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
 -- Current Database: `common`
 --
 
@@ -696,6 +792,14 @@ LOCK TABLES `states` WRITE;
 INSERT INTO `states` VALUES ('Alaska','AK'),('Alabama','AL'),('Arkansas','AR'),('Arizona','AZ'),('California','CA'),('Colorado','CO'),('Connecticut','CT'),('District of Columbia','DC'),('Delaware','DE'),('Florida','FL'),('Georgia','GA'),('Hawaii','HI'),('Iowa','IA'),('Idaho','ID'),('Illinois','IL'),('Indiana','IN'),('Kansas','KS'),('Kentucky','KY'),('Louisiana','LA'),('Massachusetts','MA'),('Maryland','MD'),('Maine','ME'),('Michigan','MI'),('Minnesota','MN'),('Missouri','MO'),('Mississippi','MS'),('Montana','MT'),('North Carolina','NC'),('North Dakota','ND'),('Nebraska','NE'),('New Hampshire','NH'),('New Jersey','NJ'),('New Mexico','NM'),('Nevada','NV'),('New York','NY'),('Ohio','OH'),('Oklahoma','OK'),('Oregon','OR'),('Pennsylvania','PA'),('Rhode Island','RI'),('South Carolina','SC'),('South Dakota','SD'),('Tennessee','TN'),('Texas','TX'),('Utah','UT'),('Virginia','VA'),('Vermont','VT'),('Washington','WA'),('Wisconsin','WI'),('West Virginia','WV'),('Wyoming','WY');
 /*!40000 ALTER TABLE `states` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Dumping events for database 'common'
+--
+
+--
+-- Dumping routines for database 'common'
+--
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -706,4 +810,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-04-04 21:05:41
+-- Dump completed on 2025-04-19  9:46:49
