@@ -1,3 +1,9 @@
+-- EXAMPLE 
+-- cd  c:\Program Files\MySQL\MySQL Server 8.0\bin
+-- mysqldump -u root -p admin --no-create-info event location schedulelocation schedulemain scheduleprofile > c:\\KCTablesSeedData.sql
+--
+--  UPDATED ON 04/19/2025
+--
 -- MySQL dump 10.13  Distrib 8.0.39, for Win64 (x86_64)
 --
 -- Host: localhost    Database: admin
